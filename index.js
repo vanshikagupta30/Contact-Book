@@ -2,12 +2,17 @@ const express = require('express');
 const path = require('path');
 const port = 7000;
 
+const db = require('./config/mongoose');
+const Contact = require('./models/contact');
+
 const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 //express. urlencoded() is a method inbuilt in express to recognize the incoming Request Object as strings or arrays. This method is called as a middleware in your application using the code: app.
 app.use(express.urlencoded());
+app.use(express.static('assets'));
+
 
 var contact_list = [
     {
@@ -25,33 +30,62 @@ var contact_list = [
 ]
 
 app.get('/', function(req, res){
-    // console.log(req);
-    // console.log(__dirname);
-    return res.render('home',{
-        title: "My contacts",
-        contactLists: contact_list
+
+    Contact.find({}, function(err, contacts){
+        if(err){
+            console.log("Error in fetching contacts from db");
+            return;
+        }
+        return res.render('home',{
+            title: "My contacts",
+            contactLists: contacts
+        });
     }); 
-    // res.end("<h1> Hey!!</h1>");
 });
 
 app.get('/practice', function(req, res){
-    console.log("hey!!");
     return res.render('practice',{
         title: "I am flying"
     });
 });
 
 app.post('/create-contact',function(req, res){
-    // return res.redirect('practice');
-    // console.log(req.body);
-    // console.log(req.body.name);
-    // console.log(req.body.phone_number);
-    // contact_list.push({
-    //     name: req.body.name,
-    //     phone: req.body.phone_number
-    // });
-    contact_list.push(req.body);
-    return res.redirect('back');
+    Contact.create({
+        name: req.body.name,
+        phone_number: req.body.phone_number
+    }, function( err, newContact){
+        if(err){
+            console.log("error in creating the contact");
+            return;
+        }
+        console.log("**********New Contact is created*********", newContact);
+        return res.redirect('back');
+    });
+    // return res.redirect('back');
+});
+
+
+// For deleting a contact
+app.get('/delete-contact/', function(req, res){
+    console.log(req.query);
+    // get the query from the URL
+    // let phone = req.query.phone_number;
+    let id = req.query.id;
+
+    Contact.findByIdAndDelete(id, function(err){
+        if (err){
+            console.log("Error in deleting an object from database");
+            return;
+        }
+        return res.redirect('back');
+    });
+
+    // let contactIndex = contact_list.findIndex(contact => contact.phone == phone);
+
+    // if(contactIndex != -1){
+    //     contact_list.splice(contactIndex, 1);
+    // }
+    // return res.redirect('back');
 });
 
 
